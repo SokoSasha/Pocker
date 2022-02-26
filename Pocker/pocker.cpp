@@ -21,10 +21,16 @@ Texture dealertexture, chiptexture;
 Sprite dealer, cchip, hchip;
 Event click;
 
+typedef struct card {
+	char num;
+	char mast;
+} CARD, * PCARD;
+
 char end_game = 0, lvl = 3, chance;
-char card_c[2], card_h[2];
-char flop[3];
-char turn, turn_flag = 0, river, river_flag = 0;
+CARD card_c[2], card_h[2], flop[3], turn, river;
+//char card_c[2], card_h[2];
+//char flop[3];
+char /*turn,*/ turn_flag = 0, /*river,*/ river_flag = 0;
 char dealer_chip, bluff;
 unsigned int bank_c = 1000, bank_h = 1000, bank_all;
 char pair_table[13], set_table[13], straight[13], real_straight[13], Dflash[13], Cflash[13], Hflash[13], Sflash[13], DFflag = 0, CFflag = 0, HFflag = 0, SFflag = 0;
@@ -105,18 +111,24 @@ void menu(RenderWindow& window) {
 
 inline void BEGIN() {
 	bank_all = 0;
-	memset(card_c, 0, 2);
+	card_c[0].num = 0; card_c[0].mast = 0;
+	card_c[1].num = 0; card_c[1].mast = 0;
+	card_h[0].num = 0; card_h[0].mast = 0;
+	card_h[1].num = 0; card_h[1].mast = 0;
+	turn.num = 0; turn.mast = 0; turn_flag = 0;
+	river.num = 0; river.mast = 0; river_flag = 0;
+	/*memset(card_c, 0, 2);
 	memset(card_h, 0, 2);
 	memset(flop, 0, 3);
 	turn = 0; turn_flag = 0;
-	river = 0; river_flag = 0;
+	river = 0; river_flag = 0;*/
 	hand_card = -1; hand_card_pair = 0; card_premium = 0;
 	end_game = 0;
 }
 
 void CHECK_STARTHAND() {
 
-	char c0 = card_c[0] % 13, c1 = card_c[1] % 13;
+	char c0 = card_c[0].num, c1 = card_c[1].num;
 
 	if (c1 == 0) {
 		if (c0 == 1 || c0 == 12) hand_card = 0;
@@ -127,10 +139,11 @@ void CHECK_STARTHAND() {
 	else if (c1 - c0 < 5) hand_card = (c1 - c0) - 1;
 
 	if (hand_card >= 0 && hand_card <= 3) {
-		if (card_c[0] < 14) if (card_c[1] > 13) hand_card += 4;
+		if (card_c[0].mast != card_c[1].mast) hand_card += 4;
+		/*if (card_c[0] < 14) if (card_c[1] > 13) hand_card += 4;
 		if (card_c[0] > 13 && card_c[0] < 27) if (card_c[1] < 14 || card_c[1] > 26) hand_card += 4;
 		if (card_c[0] > 26 && card_c[0] < 40) if (card_c[1] < 27 || card_c[1] > 39) hand_card += 4;
-		if (card_c[0] > 39 && card_c[0] < 53) if (card_c[1] < 40) hand_card += 4;
+		if (card_c[0] > 39 && card_c[0] < 53) if (card_c[1] < 40) hand_card += 4;*/
 	}
 
 	if (hand_card == -1) {
@@ -140,10 +153,11 @@ void CHECK_STARTHAND() {
 			else hand_card = 10;
 		}
 		else {
-			if (card_c[0] < 14) if (card_c[1] > 13) hand_card = 10;
+			if (card_c[0].mast != card_c[1].mast) hand_card += 10;
+			/*if (card_c[0] < 14) if (card_c[1] > 13) hand_card = 10;
 			if (card_c[0] > 13 && card_c[0] < 27) if (card_c[1] < 14 || card_c[1] > 26) hand_card = 10;
 			if (card_c[0] > 26 && card_c[0] < 40) if (card_c[1] < 27 || card_c[1] > 39) hand_card = 10;
-			if (card_c[0] > 39 && card_c[0] < 53) if (card_c[1] < 40) hand_card = 10;
+			if (card_c[0] > 39 && card_c[0] < 53) if (card_c[1] < 40) hand_card = 10;*/
 		}
 		if (hand_card == -1) hand_card = 8;
 	}
@@ -156,10 +170,9 @@ void CHECK_STARTHAND() {
 
 }
 
-void check_cards(char card, short* x, short* y) {
+void check_cards(PCARD card, short* x, short* y) {
 
-	char crd = card % 13;
-	switch (crd)
+	switch (card->num)
 	{
 	case 0: {
 		*x = 0;
@@ -215,10 +228,10 @@ void check_cards(char card, short* x, short* y) {
 	}
 	}
 
-	if (card < 14) *y = 0;
-	if (card > 13 && card < 27) *y = 214;
-	if (card > 26 && card < 40) *y = 429;
-	if (card > 39 && card < 53) *y = 643;
+	if (card->mast == 0) *y = 0;
+	if (card->mast == 1) *y = 214;
+	if (card->mast == 2) *y = 429;
+	if (card->mast == 3) *y = 643;
 
 }
 
@@ -284,7 +297,6 @@ inline unsigned int COMP_RATE(unsigned int rate) {
 	exitt:
 	}
 #endif
-
 	return rate;
 }
 
@@ -1160,30 +1172,42 @@ inline void ENDGAME() {
 	else dealer_chip = 0;
 }
 
+void helper_for_cards(char rand_card, PCARD card) {
+	card->num = rand_card % 13;
+	if (rand_card < 14) card->mast = 0;
+	else if (rand_card > 13 && rand_card < 27) card->mast = 1;
+	else if (rand_card > 26 && rand_card < 40) card->mast = 2;
+	else if (rand_card > 39 && rand_card < 53) card->mast = 3;
+}
+
 void START_HAND() {
-	char sort;
-	char c0 = card_c[0], c1 = card_c[1], h0 = card_h[0], h1 = card_h[1];
+	CARD sort;
+	char rand_card[4];
 
-	card_c[0] = 1 + rand() % 52;
+	rand_card[0] = 1 + rand() % 52;
+	helper_for_cards(rand_card[0], &card_c[0]);
 	while (1) {
-		card_h[0] = 1 + rand() % 52;
-		if (card_h[0] != card_c[0]) break;
+		/*card_h[0]*/ rand_card[1] = 1 + rand() % 52;
+		if (rand_card[0] != rand_card[1]) break;
 	}
+	helper_for_cards(rand_card[1], &card_h[0]);
 	while (1) {
-		card_c[1] = 1 + rand() % 52;
-		if (card_c[1] != card_c[0] && card_c[1] != card_h[0]) break;
+		/*card_c[1]*/ rand_card[2] = 1 + rand() % 52;
+		if (rand_card[2] != rand_card[0] && rand_card[2] != rand_card[1]) break;
 	}
+	helper_for_cards(rand_card[2], &card_c[1]);
 	while (1) {
-		card_h[1] = 1 + rand() % 52;
-		if (card_h[1] != card_c[0] && card_h[1] != card_h[0] && card_h[1] != card_c[1]) break;
+		/*card_h[1]*/ rand_card[3] = 1 + rand() % 52;
+		if (rand_card[3] != rand_card[0] && rand_card[3] != rand_card[1] && rand_card[3] != rand_card[2]) break;
 	}
+	helper_for_cards(rand_card[3], &card_h[1]);
 
-	if ((((c0) > (c1)) && (c1) != 0) || (c0) == 0) {
+	if (((card_c[0].num > card_c[1].num) && (card_c[1].num != 0)) || (card_c[0].num == 0)) {
 		sort = card_c[0];
 		card_c[0] = card_c[1];
 		card_c[1] = sort;
 	}
-	if ((((h0) > (h1)) && (h1) != 0) || (h0) == 0) {
+	if (((card_h[0].num > card_h[1].num) && (card_h[1].num != 0)) || (card_h[0].num == 0)) {
 		sort = card_h[0];
 		card_h[0] = card_h[1];
 		card_h[1] = sort;
@@ -1192,69 +1216,79 @@ void START_HAND() {
 }
 
 void FLOP() { // первые три карты
-	char flag;
+	char flag, rand_card[3], rand_num;
 
 	while (1) {
 		flag = 1;
-		flop[0] = 1 + rand() % 52;
+		rand_card[0] = 1 + rand() % 52;
+		rand_num = rand_card[0] % 13;
 
-		if (flop[0] == card_c[0] || flop[0] == card_h[0] || flop[0] == card_c[1] || flop[0] == card_h[1]) flag = 0;
+		if (rand_num == card_c[0].num || rand_num == card_h[0].num || rand_num == card_c[1].num || rand_num == card_h[1].num) flag = 0;
 
 		if (flag == 1) break;
 	}
+	helper_for_cards(rand_card[0], &flop[0]);
 
 	while (1) {
 		flag = 1;
-		flop[1] = 1 + rand() % 52;
+		rand_card[1] = 1 + rand() % 52;
+		rand_num = rand_card[1] % 13;
 
-		if (flop[1] == card_c[0] || flop[1] == card_h[0] || flop[1] == card_c[1] || flop[1] == card_h[1]) flag = 0;
+		if (rand_num == card_c[0].num || rand_num == card_h[0].num || rand_num == card_c[1].num || rand_num == card_h[1].num) flag = 0;
 
-		if (flag == 1 && flop[1] != flop[0]) break;
+		if (flag == 1 && rand_card[0] != rand_card[1]) break;
 	}
+	helper_for_cards(rand_card[1], &flop[1]);
 
 	while (1) {
 		flag = 1;
-		flop[2] = 1 + rand() % 52;
+		rand_card[2] = 1 + rand() % 52;
+		rand_num = rand_card[2] % 13;
 
-		if (flop[2] == card_c[0] || flop[2] == card_h[0] || flop[2] == card_c[1] || flop[2] == card_h[1]) flag = 0;
+		if (rand_num == card_c[0].num || rand_num == card_h[0].num || rand_num == card_c[1].num || rand_num == card_h[1].num) flag = 0;
 
-		if (flag == 1 && flop[2] != flop[0] && flop[2] != flop[1]) break;
+		if (flag == 1 && rand_card[2] != rand_card[0] && rand_card[2] != rand_card[1]) break;
 	}
+	helper_for_cards(rand_card[2], &flop[2]);
 
 }
 
 void TURN() {
-	char flag;
+	char flag, rand_card, rand_num;
 
 	while (1) {
 		flag = 1;
-		turn = 1 + rand() % 52;
+		rand_card = 1 + rand() % 52;
+		rand_num = rand_card % 13;
 
-		if (turn == card_c[0] || turn == card_h[0] || turn == card_c[1] || turn == card_h[1]) flag = 0;
+		if (rand_num == card_c[0].num || rand_num == card_h[0].num || rand_num == card_c[1].num || rand_num == card_h[1].num) flag = 0;
 
-		if (flag == 1) if ((turn == flop[0]) || (turn == flop[1]) || (turn == flop[2])) flag = 0;
+		if (flag == 1) if ((rand_num == flop[0].num) || (rand_num == flop[1].num) || (rand_num == flop[2].num)) flag = 0;
 
 		if (flag == 1) break;
 	}
 
+	helper_for_cards(rand_card, &turn);
 	turn_flag = 1;
 
 }
 
 void RIVER() {
-	char flag;
+	char flag, rand_card, rand_num;
 
 	while (1) {
 		flag = 1;
-		river = 1 + rand() % 52;
+		rand_card = 1 + rand() % 52;
+		rand_num = rand_card % 13;
 
-		if (river == card_c[0] || river == card_h[0] || river == card_c[1] || river == card_h[1]) flag = 0;
+		if (rand_num == card_c[0].num || rand_num == card_h[0].num || rand_num == card_c[1].num || rand_num == card_h[1].num) flag = 0;
 
-		if (flag == 1)  if ((river == flop[0]) || (river == flop[1]) || (river == flop[2])) flag = 0;
+		if (flag == 1)  if ((rand_num == flop[0].num) || (rand_num == flop[1].num) || (rand_num == flop[2].num)) flag = 0;
 
-		if (flag == 1 && river != turn) break;
+		if (flag == 1 && rand_num != turn.num) break;
 	}
 
+	helper_for_cards(rand_card, &river);
 	river_flag = 1;
 
 }
@@ -1275,7 +1309,7 @@ void pairandsettableHELP(char x, char y) {
 
 void PAIR_AND_SET_TABLE(char Tflag, char Rflag) {
 
-	char f0 = flop[0] % 13, f1 = flop[1] % 13, f2 = flop[2] % 13;
+	char f0 = flop[0].num, f1 = flop[1].num, f2 = flop[2].num;
 	if (Tflag == 0 && Rflag == 0) {
 		memset(pair_table, 0, 13);
 		memset(set_table, 0, 13);
@@ -1288,19 +1322,17 @@ void PAIR_AND_SET_TABLE(char Tflag, char Rflag) {
 		}
 	}
 
-	char t = turn % 13;
 	if (Tflag == 1 && Rflag == 0) {
-		pairandsettableHELP(t, f0);
-		pairandsettableHELP(t, f1);
-		pairandsettableHELP(t, f2);
+		pairandsettableHELP(turn.num, f0);
+		pairandsettableHELP(turn.num, f1);
+		pairandsettableHELP(turn.num, f2);
 	}
 
-	char r = river % 13;
 	if (Tflag == 1 && Rflag == 1) {
-		pairandsettableHELP(r, f0);
-		pairandsettableHELP(r, f1);
-		pairandsettableHELP(r, f2);
-		pairandsettableHELP(r, t);
+		pairandsettableHELP(river.num, f0);
+		pairandsettableHELP(river.num, f1);
+		pairandsettableHELP(river.num, f2);
+		pairandsettableHELP(river.num, turn.num);
 	}
 
 }
@@ -1329,14 +1361,14 @@ void STRAIGHT() {
 
 	if (turn_flag == 0 && river_flag == 0) {
 		memset(straight, 0, 13);
-		straight[flop[0] % 13] = 1;
-		straight[flop[1] % 13] = 1;
-		straight[flop[2] % 13] = 1;
+		straight[flop[0].num] = 1;
+		straight[flop[1].num] = 1;
+		straight[flop[2].num] = 1;
 	}
 
-	if (turn_flag == 1 && river_flag == 0) straight[turn % 13] = 1;
+	if (turn_flag == 1 && river_flag == 0) straight[turn.num] = 1;
 
-	if (turn_flag == 1 && river_flag == 1) straight[river % 13] = 1;
+	if (turn_flag == 1 && river_flag == 1) straight[river.num] = 1;
 
 	for (char i = 0; i < 10; i += 5) {
 		straightHELP(i, 0);
@@ -1383,11 +1415,10 @@ void FLASH() {
 		memset(Hflash, 0, 13);
 		memset(Sflash, 0, 13);
 		for (char i = 0; i < 3; i++) {
-			char f = flop[i] % 13;
-			if (flop[i] < 14) Dflash[f] = 1;
-			else if (flop[i] > 13 && flop[i] < 27) Cflash[f] = 1;
-			else if (flop[i] > 26 && flop[i] < 40) Hflash[f] = 1;
-			else if (flop[i] > 39 && flop[i] < 53) Sflash[f] = 1;
+			if (flop[i].mast == 0) Dflash[flop[i].num] = 1;
+			else if (flop[i].mast == 1) Cflash[flop[i].num] = 1;
+			else if (flop[i].mast == 2) Hflash[flop[i].num] = 1;
+			else if (flop[i].mast == 3) Sflash[flop[i].num] = 1;
 		}
 		flashHELP(Dflash, &DFflag, 0);
 		flashHELP(Cflash, &CFflag, 0);
@@ -1396,11 +1427,10 @@ void FLASH() {
 	}
 
 	if (turn_flag == 1 && river_flag == 0) {
-		char t = turn % 13;
-		if (turn < 14) Dflash[t] = 1;
-		else if (turn > 13 && turn < 27) Cflash[t] = 1;
-		else if (turn > 26 && turn < 40) Hflash[t] = 1;
-		else if (turn > 39 && turn < 53) Sflash[t] = 1;
+		if (turn.mast == 0) Dflash[turn.num] = 1;
+		else if (turn.mast == 1) Cflash[turn.num] = 1;
+		else if (turn.mast == 2) Hflash[turn.num] = 1;
+		else if (turn.mast == 3) Sflash[turn.num] = 1;
 		flashHELP(Dflash, &DFflag, 0);
 		flashHELP(Cflash, &CFflag, 0);
 		flashHELP(Hflash, &HFflag, 0);
@@ -1408,11 +1438,10 @@ void FLASH() {
 	}
 
 	if (turn_flag == 1 && river_flag == 1) {
-		char r = river % 13;
-		if (river < 14) Dflash[r] = 1;
-		else if (river > 13 && river < 27) Cflash[r] = 1;
-		else if (river > 26 && river < 40) Hflash[r] = 1;
-		else if (river > 39 && river < 53) Sflash[r] = 1;
+		if (river.mast == 0) Dflash[river.num] = 1;
+		else if (river.mast == 1) Cflash[river.num] = 1;
+		else if (river.mast == 2) Hflash[river.num] = 1;
+		else if (river.mast == 3) Sflash[river.num] = 1;
 		flashHELP(Dflash, &DFflag, 0);
 		flashHELP(Cflash, &CFflag, 0);
 		flashHELP(Hflash, &HFflag, 0);
@@ -1423,9 +1452,8 @@ void FLASH() {
 
 void CHECK_STRAIGHTDRO() {
 
-	char c0 = card_c[0] % 13, c1 = card_c[1] % 13;
-	if (straight[c0] == 0) straight[c0] = 2;
-	if (straight[c1] == 0) straight[c1] = 2;
+	if (straight[card_c[0].num] == 0) straight[card_c[0].num] = 2;
+	if (straight[card_c[1].num] == 0) straight[card_c[1].num] = 2;
 
 	memset(real_straightDRO, 0, 13);
 
@@ -1452,18 +1480,18 @@ void CHECK_STRAIGHTDRO() {
 }
 
 void CHECK_FLUSHDRO() {
-	char c0 = card_c[0] % 13, c1 = card_c[1] % 13;
+	char c0 = card_c[0].num, c1 = card_c[1].num;
 	DFDflag = 0; CFDflag = 0; HFDflag = 0; SFDflag = 0;
 
-	if (card_c[0] < 14 && Dflash[c0] == 0) Dflash[c0] = 2;
-	else if (card_c[0] > 13 && card_c[0] < 27 && Cflash[c0] == 0) Cflash[c0] = 2;
-	else if (card_c[0] > 26 && card_c[0] < 40 && Hflash[c0] == 0) Hflash[c0] = 2;
-	else if (card_c[0] > 39 && card_c[0] < 53 && Sflash[c0] == 0) Sflash[c0] = 2;
+	if (card_c[0].mast == 0 && Dflash[c0] == 0) Dflash[c0] = 2;
+	else if (card_c[0].mast == 1 && Cflash[c0] == 0) Cflash[c0] = 2;
+	else if (card_c[0].mast == 2 && Hflash[c0] == 0) Hflash[c0] = 2;
+	else if (card_c[0].mast == 3 && Sflash[c0] == 0) Sflash[c0] = 2;
 
-	if (card_c[1] < 14 && Dflash[c1] == 0) Dflash[c1] = 2;
-	else if (card_c[1] > 13 && card_c[1] < 27 && Cflash[c1] == 0) Cflash[c1] = 2;
-	else if (card_c[1] > 26 && card_c[1] < 40 && Hflash[c1] == 0) Hflash[c1] = 2;
-	else if (card_c[1] > 39 && card_c[1] < 53 && Sflash[c1] == 0) Sflash[c1] = 2;
+	if (card_c[1].mast == 0 && Dflash[c1] == 0) Dflash[c1] = 2;
+	else if (card_c[1].mast == 1 && Cflash[c1] == 0) Cflash[c1] = 2;
+	else if (card_c[1].mast == 2 && Hflash[c1] == 0) Hflash[c1] = 2;
+	else if (card_c[1].mast == 3 && Sflash[c1] == 0) Sflash[c1] = 2;
 
 	flashHELP(Dflash, &DFDflag, 1);
 	flashHELP(Cflash, &CFDflag, 1);
@@ -1517,7 +1545,7 @@ void CHECK_PAIR(char* combo) {
 
 void CHECK_THREE(char* combo, char card_1, char card_2, char flag) {
 	char check = 0;
-	char c1 = card_1 % 13, c2 = card_2 % 13, f0 = flop[0] % 13, f1 = flop[1] % 13, f2 = flop[2] % 13, t = turn % 13, r = river % 13, f;
+	char c1 = card_1, c2 = card_2, f0 = flop[0].num, f1 = flop[1].num, f2 = flop[2].num, t = turn.num, r = river.num;
 	if (set_table[0] == 1) {
 		if (f0 == 0) ++check;
 		if (f1 == 0) ++check;
@@ -1703,9 +1731,9 @@ void CHECK_TABLE() {
 
 }
 
-void CHECK_HAND(char* combo, char* card) {
+void CHECK_HAND(char* combo, PCARD card) {
 
-	char c0 = card[0] % 13, c1 = card[1] % 13, f0 = flop[0] % 13, f1 = flop[1] % 13, f2 = flop[2] % 13, t = turn % 13, r = river % 13;
+	char c0 = card[0].num, c1 = card[1].num, f0 = flop[0].num, f1 = flop[1].num, f2 = flop[2].num, t = turn.num, r = river.num;
 	memset(combo, -1, 10);
 
 	pairandsettableHELP(c0, c1);
@@ -1730,7 +1758,7 @@ void CHECK_HAND(char* combo, char* card) {
 
 	CHECK_PAIR(combo);
 
-	CHECK_THREE(combo, card[0], card[1], 1);
+	CHECK_THREE(combo, card[0].num, card[1].num, 1);
 
 	//for (char i = 0; i < 2; i++) if (straight[card[i] % 13] == 0) straight[card[i] % 13] = 2;
 	if (straight[c0] == 0) straight[c0] = 2;
@@ -1739,23 +1767,23 @@ void CHECK_HAND(char* combo, char* card) {
 	CHECK_STRAIGHT(combo);
 
 	if (DFflag == 1) {
-		if (card[0] < 14 && Dflash[c0] == 0) Dflash[c0] = 2;
-		if (card[1] < 14 && Dflash[c1] == 0) Dflash[c1] = 2;
+		if (card[0].mast == 0 && Dflash[c0] == 0) Dflash[c0] = 2;
+		if (card[1].mast == 0 && Dflash[c1] == 0) Dflash[c1] = 2;
 		CHECK_FLUSH(combo, Dflash);
 	}
 	if (CFflag == 1) {
-		if (card[0] > 13 && card[0] < 27 && Cflash[c0] == 0) Cflash[c0] = 2;
-		if (card[1] > 13 && card[1] < 27 && Cflash[c1] == 0) Cflash[c1] = 2;
+		if (card[0].mast == 1 && Cflash[c0] == 0) Cflash[c0] = 2;
+		if (card[1].mast == 1 && Cflash[c1] == 0) Cflash[c1] = 2;
 		CHECK_FLUSH(combo, Cflash);
 	}
 	if (HFflag == 1) {
-		if (card[0] > 26 && card[0] < 40 && Hflash[c0] == 0) Hflash[c0] = 2;
-		if (card[1] > 26 && card[1] < 40 && Hflash[c1] == 0) Hflash[c1] = 2;
+		if (card[0].mast == 2 && Hflash[c0] == 0) Hflash[c0] = 2;
+		if (card[1].mast == 2 && Hflash[c1] == 0) Hflash[c1] = 2;
 		CHECK_FLUSH(combo, Hflash);
 	}
 	if (SFflag == 1) {
-		if (card[0] > 39 && card[0] < 53 && Sflash[c0] == 0) Sflash[c0] = 2;
-		if (card[1] > 39 && card[1] < 53 && Sflash[c1] == 0) Sflash[c1] = 2;
+		if (card[0].mast == 3 && Sflash[c0] == 0) Sflash[c0] = 2;
+		if (card[1].mast == 3 && Sflash[c1] == 0) Sflash[c1] = 2;
 		CHECK_FLUSH(combo, Sflash);
 	}
 
@@ -1806,8 +1834,8 @@ void qsortRecursive(char* mas, char size) {
 }
 
 char WINNER(RenderWindow& window) {
-	char c0 = card_c[0] % 13, c1 = card_c[1] % 13, h0 = card_h[0] % 13, h1 = card_h[1] % 13,
-		f0 = flop[0] % 13, f1 = flop[1] % 13, f2 = flop[2] % 13, t = turn % 13, r = river % 13;
+	char c0 = card_c[0].num, c1 = card_c[1].num, h0 = card_h[0].num, h1 = card_h[1].num,
+		f0 = flop[0].num, f1 = flop[1].num, f2 = flop[2].num, t = turn.num, r = river.num;
 	char winC = -1, winH = -1;
 	char Ccard[7], Hcard[7];
 	memset(Ccard, -1, 7);
@@ -2164,13 +2192,13 @@ char WINNER(RenderWindow& window) {
 					}
 					/*for (char i = 0; i < 2; i++) if (card_c[i] < 14 && Dflash[card_c[i] % 13] == 0)
 						Ccard[count + i] = card_c[i] % 13;*/
-					if (card_c[0] < 14 && Dflash[c0] == 0) Ccard[count] = c0;
-					if (card_c[1] < 14 && Dflash[c1] == 0) Ccard[count + 1] = c1;
+					if (card_c[0].mast == 0 && Dflash[c0] == 0) Ccard[count] = c0;
+					if (card_c[1].mast == 0 && Dflash[c1] == 0) Ccard[count + 1] = c1;
 
 					/*for (char i = 0; i < 2; i++) if (card_h[i] < 14 && Dflash[card_h[i] % 13] == 0)
 						Hcard[count + i] = card_h[i] % 13;*/
-					if (card_h[0] < 14 && Dflash[h0] == 0) Hcard[count] = h0;
-					if (card_h[1] < 14 && Dflash[h1] == 0) Hcard[count + 1] = h1;
+					if (card_h[0].mast == 0 && Dflash[h0] == 0) Hcard[count] = h0;
+					if (card_h[1].mast == 0 && Dflash[h1] == 0) Hcard[count + 1] = h1;
 
 				}
 				if (CFflag == 1) {
@@ -2181,13 +2209,13 @@ char WINNER(RenderWindow& window) {
 					}
 					/*for (char i = 0; i < 2; i++) if (card_c[i] > 13 && card_c[i] < 27 && Cflash[card_c[i] % 13] == 0)
 						Ccard[count + i] = card_c[i] % 13;*/
-					if (card_c[0] > 13 && card_c[0] < 27 && Cflash[c0] == 0) Ccard[count] = c0;
-					if (card_c[1] > 13 && card_c[1] < 27 && Cflash[c1] == 0) Ccard[count + 1] = c1;
+					if (card_c[0].mast == 1 && Cflash[c0] == 0) Ccard[count] = c0;
+					if (card_c[1].mast == 1 && Cflash[c1] == 0) Ccard[count + 1] = c1;
 
 					/*for (char i = 0; i < 2; i++) if (card_h[i] > 13 && card_h[i] < 27 && Cflash[card_h[i] % 13] == 0)
 						Hcard[count + i] = card_h[i] % 13;*/
-					if (card_h[0] > 13 && card_h[0] < 27 && Cflash[h0] == 0) Hcard[count] = h0;
-					if (card_h[1] > 13 && card_h[1] < 27 && Cflash[h1] == 0) Hcard[count + 1] = h1;
+					if (card_h[0].mast == 1 && Cflash[h0] == 0) Hcard[count] = h0;
+					if (card_h[1].mast == 1 && Cflash[h1] == 0) Hcard[count + 1] = h1;
 				}
 				if (HFflag == 1) {
 					for (char i = 0; i < 13; i++) if (Hflash[i] == 1) {
@@ -2197,13 +2225,13 @@ char WINNER(RenderWindow& window) {
 					}
 					/*for (char i = 0; i < 2; i++) if (card_c[i] > 26 && card_c[i] < 40 && Hflash[card_c[i] % 13] == 0)
 						Ccard[count + i] = card_c[i] % 13;*/
-					if (card_c[0] > 26 && card_c[0] < 40 && Hflash[c0] == 0) Ccard[count] = c0;
-					if (card_c[1] > 26 && card_c[1] < 40 && Hflash[c1] == 0) Ccard[count + 1] = c1;
+					if (card_c[0].mast == 2 && Hflash[c0] == 0) Ccard[count] = c0;
+					if (card_c[1].mast == 2 && Hflash[c1] == 0) Ccard[count + 1] = c1;
 
 					/*for (char i = 0; i < 2; i++) if (card_h[i] > 26 && card_h[i] < 40 && Hflash[card_h[i] % 13] == 0)
 						Hcard[count + i] = card_h[i] % 13;*/
-					if (card_h[0] > 26 && card_h[0] < 40 && Hflash[h0] == 0) Hcard[count] = h0;
-					if (card_h[1] > 26 && card_h[1] < 40 && Hflash[h1] == 0) Hcard[count + 1] = h1;
+					if (card_h[0].mast == 2 && Hflash[h0] == 0) Hcard[count] = h0;
+					if (card_h[1].mast == 2 && Hflash[h1] == 0) Hcard[count + 1] = h1;
 				}
 				if (SFflag == 1) {
 					for (char i = 0; i < 13; i++) if (Sflash[i] == 1) {
@@ -2213,13 +2241,13 @@ char WINNER(RenderWindow& window) {
 					}
 					/*for (char i = 0; i < 2; i++) if (card_c[i] > 39 && card_c[i] < 53 && Sflash[card_c[i] % 13] == 0)
 						Ccard[count + i] = card_c[i] % 13;*/
-					if (card_c[0] > 39 && card_c[0] < 53 && Sflash[c0] == 0) Ccard[count] = c0;
-					if (card_c[1] > 39 && card_c[1] < 53 && Sflash[c1] == 0) Ccard[count + 1] = c1;
+					if (card_c[0].mast == 3 && Sflash[c0] == 0) Ccard[count] = c0;
+					if (card_c[1].mast == 3 && Sflash[c1] == 0) Ccard[count + 1] = c1;
 
 					/*for (char i = 0; i < 2; i++) if (card_h[i] > 39 && card_h[i] < 53 && Sflash[card_h[i] % 13] == 0)
 						Hcard[count + i] = card_h[i] % 13;*/
-					if (card_h[0] > 39 && card_h[0] < 53 && Sflash[h0] == 0) Hcard[count] = h0;
-					if (card_h[1] > 39 && card_h[1] < 53 && Sflash[h1] == 0) Hcard[count + 1] = h1;
+					if (card_h[0].mast == 3 && Sflash[h0] == 0) Hcard[count] = h0;
+					if (card_h[1].mast == 3 && Sflash[h1] == 0) Hcard[count + 1] = h1;
 				}
 				for (char i = 0; i < 7; i++) {
 					if (Ccard[i] == 0) Ccard[i] = 13;
@@ -2560,10 +2588,10 @@ int main() {
 				cardh2.setTextureRect(IntRect(x, y, 148, 215));
 			}
 		}*/
-		check_cards(card_h[0], &x, &y);
+		check_cards(&card_h[0], &x, &y);
 		cardh1.setTextureRect(IntRect(x, y, 148, 215));
 
-		check_cards(card_h[1], &x, &y);
+		check_cards(&card_h[1], &x, &y);
 		cardh2.setTextureRect(IntRect(x, y, 148, 215));
 
 		cardc1.setTextureRect(IntRect(295, 857, 148, 215));
@@ -2599,11 +2627,11 @@ int main() {
 			}
 		}*/
 
-		check_cards(flop[0], &x, &y);
+		check_cards(&flop[0], &x, &y);
 		card1.setTextureRect(IntRect(x, y, 148, 215));
-		check_cards(flop[1], &x, &y);
+		check_cards(&flop[1], &x, &y);
 		card2.setTextureRect(IntRect(x, y, 148, 215));
-		check_cards(flop[2], &x, &y);
+		check_cards(&flop[2], &x, &y);
 		card3.setTextureRect(IntRect(x, y, 148, 215));
 
 		update(window, 2);
@@ -2629,7 +2657,7 @@ int main() {
 		}
 
 		TURN();
-		check_cards(turn, &x, &y);
+		check_cards(&turn, &x, &y);
 		card4.setTextureRect(IntRect(x, y, 148, 215));
 
 		update(window, 3);
@@ -2655,7 +2683,7 @@ int main() {
 		}
 
 		RIVER();
-		check_cards(river, &x, &y);
+		check_cards(&river, &x, &y);
 		card5.setTextureRect(IntRect(x, y, 148, 215));
 
 		update(window, 4);
@@ -2688,15 +2716,15 @@ int main() {
 			}
 		}*/
 
-		check_cards(card_c[0], &x, &y);
+		check_cards(&card_c[0], &x, &y);
 		cardc1.setTextureRect(IntRect(x, y, 148, 215));
 
-		check_cards(card_c[1], &x, &y);
+		check_cards(&card_c[1], &x, &y);
 		cardc2.setTextureRect(IntRect(x, y, 148, 215));
 
-		check_cards(card_c[0], &x, &y);
+		check_cards(&card_c[0], &x, &y);
 		cardc1.setTextureRect(IntRect(x, y, 148, 215));
-		check_cards(card_c[1], &x, &y);
+		check_cards(&card_c[1], &x, &y);
 		cardc2.setTextureRect(IntRect(x, y, 148, 215));
 
 
