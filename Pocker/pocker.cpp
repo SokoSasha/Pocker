@@ -256,7 +256,7 @@ void update(RenderWindow& window, char flag) {
 }
 
 inline unsigned int COMP_RATE(unsigned int rate) {
-	if (bank_c > rate) {
+	/*if (bank_c > rate) {
 		bank_c -= rate;
 		bank_all += rate;
 	}
@@ -264,7 +264,24 @@ inline unsigned int COMP_RATE(unsigned int rate) {
 		bank_all += bank_c;
 		rate = bank_c;
 		bank_c = 0;
+	}*/
+
+	_asm {
+		mov eax, rate;
+		mov ecx, bank_c;
+		cmp ecx, eax;
+		jbe less;
+		sub ecx, eax;
+		mov bank_c, ecx;
+		jmp exitt;
+	less:
+		add bank_all, ecx;
+		mov rate, ecx;
+		xor ecx, ecx;
+		mov bank_c, ecx;
+	exitt:
 	}
+
 	return rate;
 }
 
